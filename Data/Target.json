@@ -1,0 +1,8 @@
+{
+  "MinimumCalories": 1600,
+  "FatPercentage": 20,
+  "CarbPercentage": 40,
+  "ProteinPercentage": 40,
+  "MinimumNumberOfIngredients": 8,
+  "MaximumNumberOfIngredients": 13
+}

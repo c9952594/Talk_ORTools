@@ -1,0 +1,90 @@
+﻿using Amazon.Lambda.APIGatewayEvents;
+using Amazon.Lambda.Core;
+using Google.OrTools.Sat;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+
+namespace IngredientReducerFunction
+{
+    public static class Handler
+    {
+        public static ResponseBody Handle(RequestBody requestBody)
+        {
+            var ingredients = requestBody.Ingredients;
+
+            var model = new CpModel();
+
+            var isIncluded = ingredients
+                .Select((ingredient, index) => model.NewBoolVar($"included_{ingredient.IngredientId}"))
+                .ToArray();
+
+            var amountOfIngredients = ingredients
+                .Select(ingredient => model.NewIntVar(0, int.MaxValue, ingredient.IngredientId))
+                .ToArray();
+
+            int doubleToIntFactor = 1000;
+
+            int minCalories = requestBody.minCalories;
+            int targetFat = requestBody.targetFat;
+            int targetCarbs = requestBody.targetCarbs;
+            int targetProtein = requestBody.targetProtein;
+            int minNumIngredients = requestBody.minNumIngredients;
+            int maxNumIngredients = requestBody.maxNumIngredients;
+            const DecisionStrategyProto.Types.VariableSelectionStrategy variableSelectionStrategy = DecisionStrategyProto.Types.VariableSelectionStrategy.ChooseHighestMax;
+            const DecisionStrategyProto.Types.DomainReductionStrategy domainReductionStrategy = DecisionStrategyProto.Types.DomainReductionStrategy.SelectMedianValue;
+
+            var calories = ingredients.Select(ingredient => (int)(ingredient.Calories * doubleToIntFactor)).ToArray();
+            var fats = ingredients.Select(ingredient => (int)(ingredient.Fat * doubleToIntFactor)).ToArray();
+            var carbs = ingredients.Select(ingredient => (int)(ingredient.Carbs * doubleToIntFactor)).ToArray();
+            var protein = ingredients.Select(ingredient => (int)(ingredient.Protein * doubleToIntFactor)).ToArray();
+
+            var amountOfCalories = LinearExpr.ScalProd(amountOfIngredients, calories);
+            var amountOfFats = LinearExpr.ScalProd(amountOfIngredients, fats);
+            var amountOfCarbs = LinearExpr.ScalProd(amountOfIngredients, carbs);
+            var amountOfProtein = LinearExpr.ScalProd(amountOfIngredients, protein);
+
+            ingredients.ForEach((ingredient, index) =>
+            {
+                var (included, amount) = (isIncluded[index], amountOfIngredients[index]);
+
+                if (ingredient.HardMin > 0) {
+                    isIncluded[index] = model.NewConstant(1);
+                    model.Add(amount >= ingredient.HardMin).OnlyEnforceIf(included);
+                } 
+                else
+                {
+                    model.Add(amount >= ingredient.SoftMin).OnlyEnforceIf(included);
+                }
+                model.Add(amount == 0).OnlyEnforceIf(included.Not());
+
+                model.Add(amount <= ingredient.Max);
+            });
+
+            model.AddLinearConstraint(LinearExpr.Sum(isIncluded), minNumIngredients, maxNumIngredients);
+
+            model.Add(amountOfCalories >= minCalories * doubleToIntFactor);
+            model.Add(amountOfFats * targetCarbs == amountOfCarbs * targetFat);
+            model.Add(amountOfCarbs * targetProtein == amountOfProtein * targetCarbs);
+
+            model.AddDecisionStrategy(amountOfIngredients, variableSelectionStrategy, domainReductionStrategy);
+
+            model.Minimize(amountOfCalories);
+
+            var solver = new CpSolver();
+            var status = solver.Solve(model);
+
+            var result = amountOfIngredients
+               .Select((amount, index) => (ingredient: ingredients[index], amount: solver.Value(amount)))
+               .Where(m => m.amount > 0)
+               .ToArray();
+
+            return new ResponseBody() { 
+                Ingredients = result.Select(ingredient => new ResponseBody.Ingredient(ingredient.ingredient, ingredient.amount)).ToArray()
+            };
+        }
+    }
+}

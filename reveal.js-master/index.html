@@ -1,0 +1,323 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/black.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h3>Google OR-Tools</h3>
+					<p>https://developers.google.com/optimization</p>
+				</section>
+
+				<section>
+					<section>
+						<h3>Combinatorial Problems</h3>
+						<p>More elements = more connections = exponential complexity</p>
+					</section>
+					<section>
+						<table>
+							<thead>
+								<tr>
+									<th>Elements</th>
+									<th>Factorial</th>
+									<th>Combinations</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>1</td>
+									<td>1!</td>
+									<td>1</td>
+								</tr>
+								<tr>
+									<td>2</td>
+									<td>2!</td>
+									<td>2</td>
+								</tr>
+								<tr>
+									<td>3</td>
+									<td>3!</td>
+									<td>6</td>
+								</tr>
+								<tr>
+									<td>4</td>
+									<td>4!</td>
+									<td>24</td>
+								</tr>
+								<tr>
+									<td>5</td>
+									<td>5!</td>
+									<td>120</td>
+								</tr>
+								<tr>
+									<td>6</td>
+									<td>6!</td>
+									<td>720</td>
+								</tr>
+							</tbody>
+						</table>
+					</section>
+					<section>
+						<p>The number of combinations spirals out of control.</p>
+						<p>Brute force of a solution becomes impractical in finite time</p>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h3>Constraint Optimisation/Programming</h3>
+						<p>Finding <b>a</b> solution instead of <b>the</b> solution.</p>
+					</section>
+					<section>
+						<p>When constraints can be applied to a large dataset the number of feasible combinations can be greatly reduced.</p>
+					</section>
+					<section>
+						<p>Maximize 3x + 4y subject to the following constraints:</p>
+							<ol>
+								<li>x + 2y ≤ 14</li>
+								<li>3x – y ≥ 0</li>
+								<li>x – y ≤ 2</li>
+							</ol>
+					</section>
+					<section>
+						<p>This triangle represents the possible solutions</p>
+						<p><img src="feasible_region.png" /></p>
+					</section>
+					<section>
+						<p>The green line represents the solutions. This is where they intersect maximally.</p>
+						<p><img src="feasible_region_solution.png" /></p>
+					</section>
+					<section>
+						<p>This is an example of linear optimisation.</p>
+						<p>Constraint optimisation is similar principal but more complex.</p>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h3>Google OR-Tools</h3>
+						<p><img src="ORToolsWebsite.png" /></p>
+					</section>
+					<section>
+						<p>So they provide a tool for solving these hard problems installable via nuget</p>
+						<p><img src="ORToolsNuget.png" /></p>
+					</section>
+					<section>
+						<h3>How to use OR-Tools</h3>
+						<p class="fragment fade-in-then-out">Or how I used OR-Tools. After more research I found I've used a very small fraction of what it can do.</p>
+						<p>
+							<ol  style="display: inline-block;" class="fragment fade-up">
+								<li>Load data</li>
+								<li>Define constants</li>
+								<li>Declare model/solver</li>
+								<li>Define variables</li>
+								<li>Define constraints</li>
+								<li>Define solution</li>
+								<li>Call solve</li>
+								<li>Read the solution</li>
+							</ol>
+						</p>
+					</section>
+				</section>
+
+				<section>
+					<h3>Load data</h3>
+					<p>Load in the json files</p>
+
+					<table>
+						<thead>
+							<tr>
+								<th>Variable</th>
+								<th>Description</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>ingredients</td>
+								<td>Macro information for ingredients in my house</td>
+							</tr>
+							<tr>
+								<td>target</td>
+								<td>Target information</td>
+							</tr>
+						</tbody>
+					</table>
+				</section>
+
+				<section>
+					<section>
+						<h3>Define constants</h3>
+						<p>Create arrays of macro values per gram</p>
+						<p>(Macro in grams / Nutritional weight)</p>
+					</section>
+
+					<section>
+						<p>I needed to add a multiplication factor to make decimals into integers</p>
+					</section>
+				</section>
+
+				<section>
+					<h3>Declare model/solver</h3>
+				</section>
+
+				<section>
+					<section>
+						<h3>Define variables</h3>
+
+						<p>Variables are the values that the solver can change when trying to solve the problem</p>
+						<p>In this case each variable has an included and amount that determine if the ingredient is included and how much is included.</p>
+					</section>
+
+					<section>
+						<table>
+							<thead>
+								<tr>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>IntVar</td>
+									<td>Integers value between min and max</td>
+								</tr>
+								<tr>
+									<td>BoolVar</td>
+									<td>Specialised IntVar (0/1)</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<p>Variables are named which is useful for debugging.</p>
+					</section>
+
+					<section>
+						<h3>Calculated Variables</h3>
+
+						<table>
+							<thead>
+								<tr>
+									<th>Function</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>ScalProd</td>
+									<td>A scalar product. Multiply each side of the array with the same index. Then Sum.</td>
+								</tr>
+								<tr>
+									<td>Sum</td>
+									<td>It's a sum. Used to count the number of included ingredients (0 or 1).</td>
+								</tr>
+							</tbody>
+						</table>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h3>Define constraints</h3>
+
+						<p>Two types of constraint</p>
+						<ol>
+							<li>Aggregate</li>
+							<li>Element</li>
+						</ol>
+					</section>
+						
+					<section>
+						<h3>Aggregate</h3>
+
+						<table>
+							<thead>
+								<tr>
+									<th>Function</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>model.Add</td>
+									<td>This adds an expression as a constraint.</td>
+								</tr>
+								<tr>
+									<td>model.AddLinearConstraint</td>
+									<td>A range check</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<p>It's at this point I realised I'm more doing Linear Optimisation when I looked at intellisense for the model.</p>
+					</section>
+
+					<section>
+						<h3>Ratios</h3>
+
+						<ul>
+							<li>A:B</li>
+							<li>a*B = b*A</li>
+							<li>A:B = 2:3</li>
+							<li>a:b = 1:4 = 1*3:4*2 = 3:8 = not a ratio</li>
+							<li>a:b = 2:3 = 2*3:3*2 = 6:6 = ratio</li>
+							<li>a:b = 4:6 = 4*3:6*2 = 12:12 = ratio</li>
+						</ul>
+					</section>
+
+					<section>
+						<h3>Element</h3>
+						
+						<ul>
+							<li>If the ingredient shouldn't be included just set include to a constant 0</li>
+							<li>The other amount variables are constrained by whether they are included or not.</li>
+							<li>IncludedIngredients is never actually referenced directly but as part of the constraint.</li>
+						</ul>
+					</section>
+				</section>
+
+				<section>
+					<h3>Define solution</h3>
+				</section>
+							
+				<section>
+					<h3>Call solve</h3>
+				</section>
+						
+				<section>
+					<h3>Read the solution</h3>
+
+					<p>I think the only unusual thing here is that you need to give the variable to the solver to pull the value out</p>
+				</section>
+			
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>
